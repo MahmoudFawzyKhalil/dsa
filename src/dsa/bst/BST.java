@@ -5,7 +5,7 @@ import java.util.Queue;
 
 public class BST {
 
-    Node root;
+    private Node root;
 
     public BST(int val) {
         this.root = new Node(val);
@@ -20,7 +20,8 @@ public class BST {
         bst.insert(-1);
         bst.print();
 
-        System.out.println(bst.lowerBound(150));
+        bst.remove(10);
+        bst.print();
     }
 
     private void bfs() {
@@ -68,33 +69,22 @@ public class BST {
         return lowerBound(root, val, null);
     }
 
-    private Node lowerBound(Node node, int val, Node lowerBound) {
-        if (node == null) return lowerBound;
+    private Node lowerBound(Node node, int val, Node currentLowerBound) {
+        if (node == null) return currentLowerBound;
 
-        if (lowerBound == null) {
-            lowerBound = node.val >= val ? node : null;
+        if (currentLowerBound == null) {
+            currentLowerBound = node.val >= val ? node : null;
         } else {
-            lowerBound = (node.val >= val) && (node.val < lowerBound.val) ? node : lowerBound;
+            currentLowerBound = (node.val >= val) && (node.val < currentLowerBound.val) ? node : currentLowerBound;
         }
 
         if (val < node.val) {
-            return lowerBound(node.left, val, lowerBound);
+            return lowerBound(node.left, val, currentLowerBound);
         } else if (val > node.val) {
-            return lowerBound(node.right, val, lowerBound);
+            return lowerBound(node.right, val, currentLowerBound);
         } else {
-            return lowerBound;
+            return currentLowerBound; // lowerBound == val
         }
-    }
-
-    /**
-     * If v has a right subtree, the minimum integer in the right subtree of v must be the successor of v. Try Successor(23) (should be 50).
-     * <p>
-     * If v does not have a right subtree, we need to traverse the ancestor(s) of v until we find 'a right turn' to vertex w (or alternatively, until we find the first vertex w that is greater than vertex v). Once we find vertex w, we will see that vertex v is the maximum element in the left subtree of w. Try Successor(7) (should be 15).
-     * <p>
-     * If v is the maximum integer in the BST, v does not have a successor. Try Successor(71) (should be none).
-     */
-    public Node successor(int val) {
-        return null;
     }
 
     public void insert(int val) {
@@ -153,18 +143,107 @@ public class BST {
         System.out.println(node.val);
     }
 
+    /**
+     * If v has a right subtree, the minimum integer in the right subtree of v must be the successor of v. Try Successor(23) (should be 50).
+     * <p>
+     * If v does not have a right subtree, we need to traverse the ancestor(s) of v until we find 'a right turn' to vertex w (or alternatively, until we find the first vertex w that is greater than vertex v). Once we find vertex w, we will see that vertex v is the maximum element in the left subtree of w. Try Successor(7) (should be 15).
+     * <p>
+     * If v is the maximum integer in the BST, v does not have a successor. Try Successor(71) (should be none).
+     */
+    public Node successor(int val) {
+        Node node = search(val);
+        // Node doesn't exist
+        if (node == null) return null;
+
+        // There is a right subtree
+        if (node.right != null) return findMin(node.right);
+
+        // No right subtree, go up until you "find a right turn in the tree" i.e. the current node is on the LEFT of the parent
+        Node parent = node.parent;
+//        while (parent != null && parent.right == node) {
+//            node = parent;
+//            parent = node.parent;
+//        }
+//        return parent;
+        // No right subtree alternative, just go up until you find a node that has a greater value than you, also works
+        while (parent != null) {
+            if (parent.val > val) return parent;
+            parent = parent.parent;
+        }
+        return null;
+    }
+
+    private Node findMin(Node node) {
+        while (node.left != null) {
+            node = node.left;
+        }
+        return node;
+    }
+
     public Node predecessor(int val) {
         return null;
+    }
+
+    // In third case of remove (with two child nodes), successor/predecessor always works because:
+    // You always have a successor on the right, because you have two child nodes, you don't have to traverse up to find the successor like in the Successor(v) operation
+    // The successor that will be removed from its tree will have no child nodes or at most one node, because if it has two nodes then it is not a successor because there is a value on its left that is the proper successor
+    // Removing using successor skews the tree left because it makes the right less deep
+    // https://stackoverflow.com/questions/72885388/deletion-operation-in-binary-search-tree-successor-or-predecessor
+    // https://visualgo.net/en/bst?slide=10-4
+    public Node remove(int val) {
+        Node node = search(val);
+        // Node does not exist
+        if (node == null) return null;
+
+        // Node has no children
+        if (node.right == null && node.left == null) {
+            Node parent = node.parent;
+            if (parent.val < node.val) {
+                parent.right = null;
+                return node;
+            } else {
+                parent.left = null;
+                return node;
+            }
+        }
+
+        // Node has one child
+        if (node.right != null && node.left == null) {
+            Node right = node.right;
+            Node parent = node.parent;
+            if (parent.val < node.val) {
+                parent.right = right;
+                return node;
+            } else {
+                parent.left = right;
+                return node;
+            }
+        }
+
+        if (node.left != null && node.right == null) {
+            Node left = node.left;
+            Node parent = node.parent;
+            if (parent.val < node.val) {
+                parent.right = left;
+                return node;
+            } else {
+                parent.left = left;
+                return node;
+            }
+        }
+
+        // Node has two children
+        Node successor = successor(val);
+        Node removed = remove(successor.val);
+        node.val = successor.val;
+        return removed;
     }
 
     /**
      * Select(k): Given a rank k, 1 ≤ k ≤ N, determine the key v that has that rank k in the BST. Or in another word, find the k-th smallest element in the BST. That is, Select(1) = FindMin() and Select(N) = FindMax().
      */
     public Node select(int rank) {
-        return null;
-    }
-
-    public Node remove(int val) {
+        // TODO
         return null;
     }
 
@@ -172,6 +251,7 @@ public class BST {
      * Rank(v): Given a key v, determine what is its rank (1-based index) in the sorted order of the BST elements. That is, Rank(FindMin()) = 1 and Rank(FindMax()) = N. If v does not exist, we can report -1.
      */
     public int rank(int val) {
+        // TODO
         return -1;
     }
 
